@@ -1,0 +1,1217 @@
+import streamlit as st
+import pandas as pd
+from datetime import date, timedelta
+from urllib.parse import quote_plus
+
+# =========================================================
+# PAGE CONFIG
+# =========================================================
+
+st.set_page_config(
+    page_title="Krishi-Bazaar",
+    page_icon="🌾",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# =========================================================
+# CUSTOM CSS
+# =========================================================
+
+st.markdown("""
+<style>
+
+.stApp {
+    background: #f5f8f4;
+}
+
+/* Sidebar */
+[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #0b3d2e, #145c3e);
+}
+
+[data-testid="stSidebar"] * {
+    color: white !important;
+}
+
+/* Main Hero */
+.hero {
+    background: linear-gradient(
+        135deg,
+        #0b3d2e,
+        #198754,
+        #63b84c
+    );
+
+    padding: 30px;
+    border-radius: 22px;
+    color: white;
+
+    box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+
+    margin-bottom: 25px;
+}
+
+.hero-title {
+    font-size: 38px;
+    font-weight: 800;
+}
+
+.hero-subtitle {
+    font-size: 17px;
+    opacity: 0.9;
+}
+
+/* Cards */
+
+.metric-card {
+
+    background: white;
+
+    padding: 20px;
+
+    border-radius: 18px;
+
+    border: 1px solid #e4e9e4;
+
+    box-shadow: 0 5px 18px rgba(0,0,0,0.05);
+
+    min-height: 120px;
+}
+
+.metric-title {
+    color: #6b756e;
+    font-size: 14px;
+}
+
+.metric-value {
+    color: #123c2c;
+    font-size: 29px;
+    font-weight: 800;
+}
+
+.metric-change {
+    color: #198754;
+    font-size: 13px;
+}
+
+/* Section */
+
+.section-title {
+    font-size: 24px;
+    font-weight: 800;
+    color: #153c2c;
+    margin-top: 28px;
+    margin-bottom: 12px;
+}
+
+/* Cards */
+
+.custom-card {
+
+    background: white;
+
+    padding: 20px;
+
+    border-radius: 18px;
+
+    border: 1px solid #e2e8e2;
+
+    box-shadow: 0 5px 18px rgba(0,0,0,0.05);
+
+}
+
+/* Pills */
+
+.pill {
+
+    background: #e8f7ed;
+
+    color: #137244;
+
+    padding: 5px 11px;
+
+    border-radius: 20px;
+
+    font-size: 12px;
+
+    font-weight: 700;
+
+}
+
+/* Offer */
+
+.offer-card {
+
+    background: white;
+
+    border: 1px solid #dfe9e1;
+
+    border-radius: 15px;
+
+    padding: 17px;
+
+    margin-bottom: 12px;
+
+}
+
+/* Success */
+
+.success-box {
+
+    background: #e9f8ef;
+
+    border-left: 5px solid #198754;
+
+    padding: 15px;
+
+    border-radius: 10px;
+
+}
+
+/* Buttons */
+
+div.stButton > button {
+
+    border-radius: 10px;
+
+    font-weight: 700;
+
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+# =========================================================
+# DEMO DATA
+# =========================================================
+
+mandis = pd.DataFrame({
+
+    "Mandi": [
+        "Varanasi Mandi",
+        "Chandauli Mandi",
+        "Prayagraj Mandi",
+        "Jaunpur Mandi",
+        "Lucknow Mandi"
+    ],
+
+    "District": [
+        "Varanasi",
+        "Chandauli",
+        "Prayagraj",
+        "Jaunpur",
+        "Lucknow"
+    ],
+
+    "Price": [
+        2450,
+        2380,
+        2520,
+        2410,
+        2600
+    ],
+
+    "Demand": [
+        72,
+        54,
+        91,
+        63,
+        88
+    ],
+
+    "Quality": [
+        4.2,
+        3.1,
+        5.0,
+        3.8,
+        6.4
+    ],
+
+    "Distance": [
+        12,
+        28,
+        125,
+        72,
+        310
+    ]
+})
+
+
+price_history = pd.DataFrame({
+
+    "Date": pd.date_range(
+        end=pd.Timestamp.today(),
+        periods=14
+    ),
+
+    "Wheat": [
+        2310,2335,2350,2370,
+        2390,2385,2410,2430,
+        2420,2445,2460,2480,
+        2490,2520
+    ],
+
+    "Rice": [
+        2980,3010,2990,3030,
+        3060,3090,3075,3110,
+        3140,3130,3160,3180,
+        3210,3240
+    ],
+
+    "Potato": [
+        1250,1280,1310,1290,
+        1340,1370,1390,1360,
+        1410,1450,1430,1480,
+        1510,1540
+    ]
+})
+
+
+offers = pd.DataFrame({
+
+    "ID": [
+        "OF-1024",
+        "OF-1025",
+        "OF-1026",
+        "OF-1027"
+    ],
+
+    "Buyer": [
+        "Shakti Foods Pvt. Ltd.",
+        "Kisan Agro Traders",
+        "FreshGrain Foods",
+        "Bharat Staples"
+    ],
+
+    "Crop": [
+        "Wheat",
+        "Wheat",
+        "Wheat",
+        "Wheat"
+    ],
+
+    "Price": [
+        2580,
+        2510,
+        2550,
+        2480
+    ],
+
+    "Quantity": [
+        1000,
+        750,
+        1200,
+        500
+    ],
+
+    "Pickup": [
+        "27 Sep",
+        "28 Sep",
+        "29 Sep",
+        "30 Sep"
+    ]
+})
+
+
+# =========================================================
+# SESSION STATE
+# =========================================================
+
+if "accepted_offer" not in st.session_state:
+
+    st.session_state.accepted_offer = None
+
+
+if "lot_created" not in st.session_state:
+
+    st.session_state.lot_created = False
+
+
+# =========================================================
+# HELPER
+# =========================================================
+
+def money(value):
+
+    return f"₹{value:,.0f}"
+
+
+def google_maps(location):
+
+    return (
+        "https://www.google.com/maps/search/?api=1&query="
+        + quote_plus(location)
+    )
+
+
+# =========================================================
+# SIDEBAR
+# =========================================================
+
+with st.sidebar:
+
+    st.markdown("## 🌾 Krishi-Bazaar")
+
+    st.caption("Krishi-Bazaar • SIH 2026")
+
+    st.divider()
+
+    role = st.radio(
+        "Select Dashboard",
+        [
+            "👨‍🌾 Farmer",
+            "🏪 Buyer",
+            "🏬 Mandi Staff",
+            "🛡️ Admin"
+        ]
+    )
+
+    st.divider()
+
+    crop = st.selectbox(
+        "Select Crop",
+        [
+            "Wheat",
+            "Rice",
+            "Potato",
+            "Mustard"
+        ]
+    )
+
+    location = st.selectbox(
+        "Farmer Location",
+        [
+            "Varanasi",
+            "Chandauli",
+            "Jaunpur",
+            "Prayagraj"
+        ]
+    )
+
+    st.divider()
+
+    st.info(
+        "Prototype Mode\n\n"
+        "Government APIs, payment gateway "
+        "and notification services can be "
+        "connected later."
+    )
+
+
+# =========================================================
+# HERO
+# =========================================================
+
+st.markdown("""
+<div class="hero">
+
+<div class="hero-title">
+🌾 Krishis-Bazaar
+</div>
+
+<div class="hero-subtitle">
+
+Transparent Price Discovery •
+Verified Buyers •
+Smart Mandi Matching •
+Offer Tracking •
+Payment Tracking
+
+</div>
+
+</div>
+""", unsafe_allow_html=True)
+
+
+# =========================================================
+# FARMER DASHBOARD
+# =========================================================
+
+if role == "👨‍🌾 Farmer":
+
+    st.markdown("## 👨‍🌾 Farmer Dashboard")
+
+    st.caption(
+        f"Welcome Farmer • {location} • {crop}"
+    )
+
+    # METRICS
+
+    c1, c2, c3, c4 = st.columns(4)
+
+    c1.markdown("""
+    <div class="metric-card">
+
+    <div class="metric-title">
+    Best Nearby Price
+    </div>
+
+    <div class="metric-value">
+    ₹2,580
+    </div>
+
+    <div class="metric-change">
+    ↑ 4.8% today
+    </div>
+
+    </div>
+    """, unsafe_allow_html=True)
+
+
+    c2.markdown("""
+    <div class="metric-card">
+
+    <div class="metric-title">
+    Active Offers
+    </div>
+
+    <div class="metric-value">
+    4
+    </div>
+
+    <div class="metric-change">
+    2 new offers
+    </div>
+
+    </div>
+    """, unsafe_allow_html=True)
+
+
+    c3.markdown("""
+    <div class="metric-card">
+
+    <div class="metric-title">
+    Expected Revenue
+    </div>
+
+    <div class="metric-value">
+    ₹25.8L
+    </div>
+
+    <div class="metric-change">
+    For 1,000 kg
+    </div>
+
+    </div>
+    """, unsafe_allow_html=True)
+
+
+    c4.markdown("""
+    <div class="metric-card">
+
+    <div class="metric-title">
+    Farmer Trust Score
+    </div>
+
+    <div class="metric-value">
+    92/100
+    </div>
+
+    <div class="metric-change">
+    ✓ Verified Profile
+    </div>
+
+    </div>
+    """, unsafe_allow_html=True)
+
+
+    # PRICE DISCOVERY
+
+    st.markdown(
+        '<div class="section-title">📊 Smart Price Discovery</div>',
+        unsafe_allow_html=True
+    )
+
+    left, right = st.columns([1.7, 1])
+
+
+    with left:
+
+        st.markdown(
+            '<div class="custom-card">',
+            unsafe_allow_html=True
+        )
+
+        selected_crop = crop
+
+        if selected_crop not in price_history.columns:
+
+            selected_crop = "Wheat"
+
+        chart_data = price_history.set_index("Date")[
+            [selected_crop]
+        ]
+
+        st.line_chart(
+            chart_data,
+            height=300
+        )
+
+        st.markdown(
+            f"""
+            <span class="pill">
+            14 Day Trend
+            </span>
+
+            Current Price:
+            <b>{money(chart_data.iloc[-1,0])}/qtl</b>
+            """,
+            unsafe_allow_html=True
+        )
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
+
+    with right:
+
+        st.markdown(
+            '<div class="custom-card">',
+            unsafe_allow_html=True
+        )
+
+        st.markdown("### 🎯 AI Price Insight")
+
+        st.metric(
+            "Current Market Price",
+            money(chart_data.iloc[-1,0])
+        )
+
+        st.metric(
+            "Yesterday",
+            money(chart_data.iloc[-2,0])
+        )
+
+        st.success(
+            "Demand is strong. "
+            "Keeping your lot open for verified buyers "
+            "may provide more offers."
+        )
+
+        st.progress(78)
+
+        st.caption(
+            "Market Demand Strength: 78%"
+        )
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
+
+    # MANDI COMPARISON
+
+    st.markdown(
+        '<div class="section-title">📍 Nearby Mandi Comparison</div>',
+        unsafe_allow_html=True
+    )
+
+    mandi_display = mandis.copy()
+
+    mandi_display["Price"] = (
+        mandi_display["Price"]
+        .apply(money)
+    )
+
+    st.dataframe(
+        mandi_display,
+        use_container_width=True,
+        hide_index=True
+    )
+
+
+    # OFFERS
+
+    st.markdown(
+        '<div class="section-title">🤝 Buyer Offers</div>',
+        unsafe_allow_html=True
+    )
+
+
+    for _, offer in offers.iterrows():
+
+        st.markdown(
+            f"""
+            <div class="offer-card">
+
+            <b>{offer['Buyer']}</b>
+
+            <span class="pill">
+            VERIFIED BUYER
+            </span>
+
+            <br><br>
+
+            🌾 {offer['Crop']}
+
+            &nbsp;&nbsp;
+
+            💰 <b>{money(offer['Price'])}/qtl</b>
+
+            &nbsp;&nbsp;
+
+            📦 {offer['Quantity']} kg
+
+            &nbsp;&nbsp;
+
+            📅 Pickup {offer['Pickup']}
+
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        if st.button(
+            f"Accept Offer • {offer['ID']}",
+            key=offer["ID"]
+        ):
+
+            st.session_state.accepted_offer = (
+                offer["ID"]
+            )
+
+            st.success(
+                f"Offer {offer['ID']} accepted!"
+            )
+
+
+    if st.session_state.accepted_offer:
+
+        st.markdown(
+            f"""
+            <div class="success-box">
+
+            ✅ Offer
+            <b>{st.session_state.accepted_offer}</b>
+            accepted successfully.
+
+            <br><br>
+
+            🚛 Transport selection unlocked
+
+            <br>
+
+            💳 Payment tracking activated
+
+            <br>
+
+            📱 Buyer has been notified.
+
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+
+    # CREATE LOT
+
+    st.markdown(
+        '<div class="section-title">📦 Create Crop Lot</div>',
+        unsafe_allow_html=True
+    )
+
+    with st.expander(
+        "Create New Crop Lot"
+    ):
+
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+
+            quantity = st.number_input(
+                "Quantity (kg)",
+                100,
+                10000,
+                1000,
+                100
+            )
+
+        with col2:
+
+            quality = st.selectbox(
+                "Quality Grade",
+                ["A", "B", "C"]
+            )
+
+        with col3:
+
+            expected_price = st.number_input(
+                "Expected Price ₹/qtl",
+                1500,
+                5000,
+                2550,
+                10
+            )
+
+
+        if st.button(
+            "🚀 Publish Crop Lot",
+            type="primary"
+        ):
+
+            st.session_state.lot_created = True
+
+
+        if st.session_state.lot_created:
+
+            st.success(
+                f"Lot Published Successfully! "
+                f"{quantity} kg {crop}, "
+                f"Grade {quality}, "
+                f"Target {money(expected_price)}/qtl"
+            )
+
+
+    # TRANSPORT
+
+    st.markdown(
+        '<div class="section-title">🚚 Transport & Payment</div>',
+        unsafe_allow_html=True
+    )
+
+    t1, t2, t3 = st.columns(3)
+
+    t1.info(
+        "🚛 TRANSPORT\n\n"
+        "2 verified vehicles available"
+    )
+
+    t2.info(
+        "📍 ROUTE\n\n"
+        "Mandi → Buyer Warehouse"
+    )
+
+    t3.info(
+        "💳 PAYMENT\n\n"
+        "Escrow: READY"
+    )
+
+
+    if st.session_state.accepted_offer:
+
+        st.link_button(
+            "🗺️ Open Route in Google Maps",
+            google_maps(
+                "Varanasi Mandi to Buyer Warehouse"
+            ),
+            use_container_width=True
+        )
+
+
+# =========================================================
+# BUYER DASHBOARD
+# =========================================================
+
+elif role == "🏪 Buyer":
+
+    st.markdown(
+        "## 🏪 Buyer Dashboard"
+    )
+
+    st.caption(
+        "Find verified farmers and purchase crop lots."
+    )
+
+
+    a,b,c,d = st.columns(4)
+
+    a.metric(
+        "Available Lots",
+        "126"
+    )
+
+    b.metric(
+        "Verified Farmers",
+        "84"
+    )
+
+    c.metric(
+        "Market Price",
+        "₹2,520"
+    )
+
+    d.metric(
+        "Active Orders",
+        "12"
+    )
+
+
+    st.markdown(
+        '<div class="section-title">🔎 Smart Lot Search</div>',
+        unsafe_allow_html=True
+    )
+
+
+    lots = pd.DataFrame({
+
+        "Lot ID": [
+            "LOT-1001",
+            "LOT-1002",
+            "LOT-1003",
+            "LOT-1004",
+            "LOT-1005"
+        ],
+
+        "Farmer": [
+            "Ramesh Kumar",
+            "Suresh Singh",
+            "Anita Devi",
+            "Mahesh Patel",
+            "Sunita Yadav"
+        ],
+
+        "Crop": [
+            "Wheat",
+            "Wheat",
+            "Rice",
+            "Potato",
+            "Wheat"
+        ],
+
+        "District": [
+            "Varanasi",
+            "Chandauli",
+            "Jaunpur",
+            "Varanasi",
+            "Prayagraj"
+        ],
+
+        "Quantity": [
+            1000,
+            1800,
+            2500,
+            900,
+            2200
+        ],
+
+        "Ask Price": [
+            2580,
+            2520,
+            3240,
+            1540,
+            2550
+        ],
+
+        "Grade": [
+            "A",
+            "A",
+            "A",
+            "B",
+            "A"
+        ],
+
+        "Trust Score": [
+            94,
+            91,
+            96,
+            89,
+            93
+        ]
+    })
+
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+
+        crop_filter = st.selectbox(
+            "Crop",
+            [
+                "All",
+                "Wheat",
+                "Rice",
+                "Potato"
+            ]
+        )
+
+    with col2:
+
+        minimum_quantity = st.number_input(
+            "Minimum Quantity",
+            0,
+            10000,
+            500
+        )
+
+    with col3:
+
+        maximum_price = st.number_input(
+            "Maximum Price",
+            1500,
+            5000,
+            2700
+        )
+
+
+    filtered = lots[
+        lots["Quantity"] >= minimum_quantity
+    ]
+
+    filtered = filtered[
+        filtered["Ask Price"] <= maximum_price
+    ]
+
+
+    if crop_filter != "All":
+
+        filtered = filtered[
+            filtered["Crop"] == crop_filter
+        ]
+
+
+    st.dataframe(
+        filtered,
+        use_container_width=True,
+        hide_index=True
+    )
+
+
+    # OFFER
+
+    st.markdown(
+        '<div class="section-title">💬 Place Offer</div>',
+        unsafe_allow_html=True
+    )
+
+
+    if len(filtered) > 0:
+
+        p1,p2,p3 = st.columns(3)
+
+        with p1:
+
+            selected_lot = st.selectbox(
+                "Select Lot",
+                filtered["Lot ID"].tolist()
+            )
+
+        with p2:
+
+            offer_price = st.number_input(
+                "Offer Price ₹/qtl",
+                1500,
+                5000,
+                2580
+            )
+
+        with p3:
+
+            offer_quantity = st.number_input(
+                "Quantity",
+                100,
+                10000,
+                1000
+            )
+
+
+        if st.button(
+            "📨 Send Offer",
+            type="primary"
+        ):
+
+            st.success(
+                f"Offer sent successfully for {selected_lot}! "
+                f"Farmer will receive notification."
+            )
+
+
+    st.markdown(
+        '<div class="section-title">📈 Market Snapshot</div>',
+        unsafe_allow_html=True
+    )
+
+    st.bar_chart(
+        mandis.set_index("Mandi")[
+            ["Price", "Demand"]
+        ],
+        height=300
+    )
+
+
+# =========================================================
+# MANDI STAFF
+# =========================================================
+
+elif role == "🏬 Mandi Staff":
+
+    st.markdown(
+        "## 🏬 Mandi Staff Dashboard"
+    )
+
+    st.caption(
+        "Monitor mandi operations and transactions."
+    )
+
+
+    c1,c2,c3,c4 = st.columns(4)
+
+    c1.metric(
+        "Today's Arrivals",
+        "318"
+    )
+
+    c2.metric(
+        "Active Lots",
+        "126"
+    )
+
+    c3.metric(
+        "Pending Offers",
+        "37"
+    )
+
+    c4.metric(
+        "Completed Sales",
+        "82"
+    )
+
+
+    st.markdown(
+        '<div class="section-title">📊 Mandi Analytics</div>',
+        unsafe_allow_html=True
+    )
+
+
+    left,right = st.columns(2)
+
+
+    with left:
+
+        st.markdown(
+            '<div class="custom-card">',
+            unsafe_allow_html=True
+        )
+
+        st.markdown(
+            "### 📈 Price Trends"
+        )
+
+        st.line_chart(
+            price_history.set_index("Date")[
+                ["Wheat","Rice","Potato"]
+            ],
+            height=300
+        )
+
+        st.markdown(
+            "</div>",
+            unsafe_allow_html=True
+        )
+
+
+    with right:
+
+        st.markdown(
+            '<div class="custom-card">',
+            unsafe_allow_html=True
+        )
+
+        st.markdown(
+            "### 📦 Market Demand"
+        )
+
+        st.bar_chart(
+            mandis.set_index("Mandi")[
+                ["Demand"]
+            ],
+            height=300
+        )
+
+        st.markdown(
+            "</div>",
+            unsafe_allow_html=True
+        )
+
+
+    st.markdown(
+        '<div class="section-title">🧾 Offer Queue</div>',
+        unsafe_allow_html=True
+    )
+
+
+    st.dataframe(
+        offers,
+        use_container_width=True,
+        hide_index=True
+    )
+
+
+# =========================================================
+# ADMIN DASHBOARD
+# =========================================================
+
+else:
+
+    st.markdown(
+        "## 🛡️ Admin Dashboard"
+    )
+
+    st.caption(
+        "Platform analytics, verification and system monitoring."
+    )
+
+    c1, c2, c3, c4 = st.columns(4)
+
+    c1.metric(
+        "Registered Users",
+        "4,862",
+        "+12%"
+    )
+
+    c2.metric(
+        "Verified Buyers",
+        "1,208",
+        "+8%"
+    )
+
+    c3.metric(
+        "Transactions",
+        "9,421",
+        "+17%"
+    )
+
+    c4.metric(
+        "System Uptime",
+        "99.8%"
+    )
+
+    st.markdown(
+        '<div class="section-title">🛡️ Verification Queue</div>',
+        unsafe_allow_html=True
+    )
+
+    verification = pd.DataFrame({
+
+        "ID": [
+            "BUY-8812",
+            "BUY-8813",
+            "FRM-4102",
+            "FRM-4103"
+        ],
+
+        "Name": [
+            "AgroLink Traders",
+            "Shivam Foods",
+            "Ram Singh",
+            "Geeta Devi"
+        ],
+
+        "Role": [
+            "Buyer",
+            "Buyer",
+            "Farmer",
+            "Farmer"
+        ],
+
+        "Status": [
+            "KYC Pending",
+            "Verified",
+            "Verified",
+            "Document Review"
+        ]
+    })
+
+    # IMPORTANT: 4 spaces indentation
+    st.dataframe(
+        verification,
+        use_container_width=True,
+        hide_index=True
+    )
